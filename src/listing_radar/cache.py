@@ -1,8 +1,9 @@
 """Disk cache for GET responses.
 
 Etsy's rate limit is per key, so this is a requirement rather than an
-optimisation: a developer-mode app gets 10,000 calls a day and a few
-uncached iterations will burn the lot.
+optimisation: a Personal Access app is allotted 5,000 calls a day and 5 per
+second (confirmed in the developer portal, 2026-08-11 — not the 10,000 this
+file used to claim), and a few uncached iterations will burn the lot.
 
 The TTL is not a tuning knob. Etsy's API Terms of Use, section 5 ("Display
 of Data"), state: "You will not display listing content more than six (6)
