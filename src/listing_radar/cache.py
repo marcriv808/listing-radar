@@ -3,6 +3,14 @@
 Etsy's rate limit is per key, so this is a requirement rather than an
 optimisation: a developer-mode app gets 10,000 calls a day and a few
 uncached iterations will burn the lot.
+
+The TTL is not a tuning knob. Etsy's API Terms of Use, section 5 ("Display
+of Data"), state: "You will not display listing content more than six (6)
+hours older than the corresponding information on the Etsy Site or the Etsy
+Apps... you will not cache or store it longer than is reasonably necessary
+to provide service to your Application's users." Every command here displays
+listing content — titles, view counts, ages — so six hours is the ceiling,
+not a default to raise. Raising it trades a compliance breach for quota.
 """
 from __future__ import annotations
 
@@ -11,7 +19,8 @@ import json
 import pathlib
 import time
 
-DEFAULT_TTL = 7 * 86400
+# Etsy API ToU §5 Display of Data: six hours, not a preference. See module docstring.
+DEFAULT_TTL = 6 * 3600
 
 
 class Cache:

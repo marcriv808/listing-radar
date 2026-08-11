@@ -14,13 +14,70 @@ change wants to re-track a planning doc, scrub it for the above first, and
 this file (`docs/PRE-PUBLISH.md`) stays tracked regardless — only the
 `superpowers/` subdirectory is excluded.
 
-- [ ] Read Etsy's current API terms of use and developer policy. This tool
+## ⛔ BLOCKER: written authorization from Etsy
+
+Read 2026-08-11 at https://www.etsy.com/legal/api/. Two clauses in section 5
+("Prohibited Behavior") cover what this tool does, and both carve out the
+same exception — written permission:
+
+> Use or promote the use of automated systems or browser extensions to
+> access, analyze, or scrape the Etsy Site, the Etsy API or any Etsy data,
+> including but not limited to Etsy listings, shops, or user profiles,
+> **unless expressly authorized in writing by Etsy**
+
+> Use the Etsy API to collect, scan, or otherwise request Etsy content for
+> purposes of **analytics**, machine learning, training artificial
+> intelligence models, licensing, or content removal, **unless expressly
+> authorized in writing by Etsy**
+
+This tool is an automated system that requests listing and shop content and
+computes analytics over it — median views/day, competitor counts, rank
+position. That is the plain reading, not a strained one. Publishing it
+publicly is additionally "promoting the use of" such a system.
+
+**Do not publish until Etsy answers.** Write to developer@etsy.com,
+describe the tool exactly (read-only, GET only, each user supplies their own
+key, no data resale), and ask whether it needs written authorization under
+these two clauses. Their answer decides whether this repo ships publicly,
+ships private, or stays a personal tool.
+
+Related, and worth asking in the same email: section 2 says "Each API key
+may only be used for a single Application, and each Application may only
+use its designated API key," and section 3 requires Etsy's prior approval of
+each Application's stated purpose. A key registered for another app does not
+cover this one.
+
+- [x] Read Etsy's current API terms of use and developer policy. This tool
       encourages third parties to use their own keys; confirm that distributing
       an open-source client is permitted and that nothing in the README implies
       Etsy endorsement.
-- [ ] Read Etsy's trademark policy. The repository is named `listing-radar`
+      — 2026-08-11: read in full. **Not confirmed — see the blocker above.**
+      Distribution itself is contemplated (section 1 licenses you to "develop,
+      create, share and run Applications", and an Application is explicitly one
+      "you make available to Etsy sellers"), and the per-user-own-key design is
+      the right shape because the license is non-sublicensable. But the two
+      analytics/automation clauses sit on top of that and are unresolved.
+      Three further requirements this repo does not yet meet, all from
+      section 3, and none of which code can satisfy alone:
+      a monitored support email address for seller users; Application Terms
+      including a privacy policy accepted through a click-through or
+      equivalent; and the verbatim warranty disclaimer naming the developer.
+- [x] Read Etsy's trademark policy. The repository is named `listing-radar`
       specifically to keep the mark out of the name; confirm that describing it
       as "for Etsy sellers" is acceptable use.
+      — 2026-08-11: the standalone Trademark Policy URL referenced by the API
+      Terms now returns "The article you are looking for is no longer
+      available," so the operative text is section 1 of the API Terms itself.
+      Descriptive use is permitted: you "are permitted to state that it was
+      developed using the Etsy API," Etsy's marks must "appear less prominently
+      than your own branding," and you may not imply endorsement. Keeping the
+      mark out of the repo name remains the right call. One hard requirement,
+      now implemented: the statement
+      "The term 'Etsy' is a trademark of Etsy, Inc. This Application uses
+      Etsy's API, but is not endorsed or certified by Etsy."
+      must be displayed prominently and **verbatim**. It is in the README
+      header and the `--help` epilog, pinned by two tests in
+      `tests/test_cli.py` so a later edit cannot quietly reword it.
 - [x] Run a secret scan over the full history, not just the working tree:
       `gitleaks detect --source . --log-opts="--all"`
       — 2026-08-11: 21 commits scanned, **no leaks found**.
@@ -65,6 +122,20 @@ this file (`docs/PRE-PUBLISH.md`) stays tracked regardless — only the
       1 from cache**. `limit`/`offset` behaved as `rank.probe()` assumes.
       Remaining unverified: quota-exhaustion (429) and the 403 shared-secret
       path never fired, so both error branches are still fake-tested only.
-- [ ] Set the repository homepage field to `https://listingresearchos.com`.
-- [ ] Set the repository description to "Demand research for Etsy sellers, from
+- [x] Set the repository homepage field to `https://listingresearchos.com`.
+- [x] Set the repository description to "Demand research for Etsy sellers, from
       public listing data".
+      — 2026-08-11: both set on a **private** GitHub repo. Flipping it public
+      is gated on the blocker at the top of this file.
+- [ ] Add a monitored support email address to the README (API Terms §3
+      requires one for seller users) and decide what stands in for the required
+      click-through Application Terms for a CLI with no install-time prompt.
+
+## Compliance changes already made
+
+- Cache TTL was 7 days; it is now **6 hours** (`cache.py`). API Terms §5
+  ("Display of Data") caps displayed listing content at six hours old. Every
+  command here displays listing content, so the old default was a standing
+  breach. The cost is real and was accepted deliberately: the cache exists
+  because a developer key gets 10,000 calls a day, and a 6-hour TTL means far
+  more live calls than a 7-day one. Do not raise it back.

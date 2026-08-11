@@ -1,5 +1,8 @@
 # listing-radar
 
+> The term 'Etsy' is a trademark of Etsy, Inc. This Application uses Etsy's API,
+> but is not endorsed or certified by Etsy.
+
 Demand research for Etsy sellers, from public listing data. Read-only — it never
 writes to your shop.
 

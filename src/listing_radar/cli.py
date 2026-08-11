@@ -8,6 +8,14 @@ from . import config
 from .client import EtsyClient, QuotaExhausted
 from .commands import demand, niche, rank, traction
 
+# Required verbatim by Etsy's API Terms of Use, section 1 ("Etsy's
+# Trademarks"): "you must prominently display the following statement within
+# your Application". Do not reword, abbreviate, or make it conditional.
+ETSY_DISCLAIMER = (
+    "The term 'Etsy' is a trademark of Etsy, Inc. "
+    "This Application uses Etsy's API, but is not endorsed or certified by Etsy."
+)
+
 
 def traction_target(value: str) -> tuple[str, int]:
     """argparse type for traction's target: a bare listing id (e.g. 12345) or
@@ -51,6 +59,8 @@ def build_parser() -> argparse.ArgumentParser:
         prog="listing-radar",
         description="Demand research for Etsy sellers, from public listing data. "
                     "Read-only: this tool never writes to a shop.",
+        epilog=ETSY_DISCLAIMER,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     sub = p.add_subparsers(dest="command", required=True)
 

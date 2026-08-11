@@ -250,3 +250,38 @@ def test_niche_command_prints_the_rendered_report_and_exits_zero(monkeypatch, ca
     assert "FORMAT   pass" in out
     assert out.strip().split("\n")[-3] == "BUILD"
     assert "2 API calls, 0 from cache" in out
+
+
+def test_help_carries_the_verbatim_etsy_trademark_disclaimer(capsys):
+    """Etsy's API Terms of Use, section 1, require this exact sentence to be
+    displayed prominently within the Application. It is a contractual string,
+    not copy — a reworded or dropped version is a terms breach, so pin it here
+    rather than trusting nobody edits the epilog."""
+    required = (
+        "The term 'Etsy' is a trademark of Etsy, Inc. "
+        "This Application uses Etsy's API, but is not endorsed or certified by Etsy."
+    )
+
+    with pytest.raises(SystemExit) as exc:
+        cli.main(["--help"])
+    out, _ = capsys.readouterr()
+
+    assert exc.value.code == 0
+    # argparse wraps the epilog across lines; compare on collapsed whitespace.
+    assert required in " ".join(out.split())
+
+
+def test_readme_carries_the_verbatim_etsy_trademark_disclaimer():
+    """Same contractual string, second required surface. The README is what a
+    prospective user reads before installing anything."""
+    import pathlib
+    import re
+    readme = pathlib.Path(__file__).resolve().parent.parent / "README.md"
+    required = (
+        "The term 'Etsy' is a trademark of Etsy, Inc. This Application uses "
+        "Etsy's API, but is not endorsed or certified by Etsy."
+    )
+    # The disclaimer sits in a blockquote, so strip the "> " line markers the
+    # renderer drops — the requirement is about the displayed sentence.
+    rendered = " ".join(re.sub(r"^\s*>\s?", "", readme.read_text(), flags=re.M).split())
+    assert required in rendered
