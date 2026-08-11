@@ -172,11 +172,19 @@ revocation, which is why this tool runs on a key of its own.
 - [x] Set the repository homepage field to `https://listingresearchos.com`.
 - [x] Set the repository description to "Demand research for Etsy sellers, from
       public listing data".
-      — 2026-08-11: both set on a **private** GitHub repo. Flipping it public
-      is gated on the blocker at the top of this file.
-- [ ] Add a monitored support email address to the README (API Terms §3
-      requires one for seller users) and decide what stands in for the required
-      click-through Application Terms for a CLI with no install-time prompt.
+      — 2026-08-11: both set, and the repository is now public.
+- [x] Add a monitored support email address to the README (API Terms §3
+      requires one for seller users).
+      — 2026-08-11: `marc@listingresearchos.com`, in the README's Support
+      section. The domain's MX records resolve (Zoho), so the address can
+      actually receive mail — §3 requires a *monitored* address, and one that
+      bounces would satisfy the letter of the checklist while failing the term.
+- [ ] Decide what stands in for the click-through Application Terms §3 requires,
+      given a CLI has no install-time prompt. A LICENSE file is not a
+      click-through, and neither is a README section. Options worth weighing:
+      a first-run acknowledgement written to the cache directory, or asking
+      Etsy directly what they accept for a command-line tool — the same channel
+      that answered the key question is the obvious place to raise it.
 
 ## Compliance changes already made
 

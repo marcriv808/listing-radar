@@ -146,6 +146,16 @@ listing in the seller's own currency, and mixing them silently corrupts any
 average — which is exactly why this tool omits prices entirely rather than
 report a wrong number. Converting first is the better answer, and it is theirs.
 
+## Support
+
+Questions, bugs, or anything this tool got wrong: **marc@listingresearchos.com**,
+or open an issue.
+
+If a number here looks wrong, it may well be. The scoring formulas are
+unvalidated heuristics and the `rank` position comes from the API's relevance
+search rather than buyer-facing Etsy ranking. Tell me which phrase and which
+listing and I will look at it.
+
 ## Related
 
 I also build finished tools for solo sellers at
