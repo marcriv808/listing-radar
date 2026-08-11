@@ -11,10 +11,13 @@ grading your listings.
 
 ```bash
 listing-radar demand "clinical supervision hours tracker"
-listing-radar traction shop:12345678
-listing-radar rank "estate executor checklist" --listing 4514299502
+listing-radar traction shop:2000002
+listing-radar rank "estate executor checklist" --listing 1000000001
 listing-radar niche "budget spreadsheet"
 ```
+
+(`2000002` and `1000000001` above are placeholders in the same synthetic style
+as the test fixtures — swap in a real shop or listing id.)
 
 | Command | Question |
 |---|---|
@@ -22,6 +25,15 @@ listing-radar niche "budget spreadsheet"
 | `traction` | How well is this competitor really doing? |
 | `rank` | Why does my listing get no views? |
 | `niche` | Is this worth building? |
+
+## Flags
+
+| Command | Flag | Default | Meaning |
+|---|---|---|---|
+| `demand` | `--sample` | `100` | how many ranked listings to sample (clamped to 1–100) |
+| `rank` | `--depth` | `250` | how deep to search before calling the listing absent (must be >= 1) |
+| `niche` | `--min-demand` | `1.0` | minimum median views/day among rankers to pass the DEMAND gate |
+| `niche` | `--max-competition` | `2000` | maximum active-listing count to pass the ROOM gate |
 
 ## How it works
 
@@ -57,13 +69,16 @@ every run.
 
 ## Setup
 
-You need your own Etsy app key. Registration and approval take a few days and no
-tool can shortcut that.
+Requires Python 3.10+. You need your own Etsy app key. Registration and
+approval take a few days and no tool can shortcut that.
 
 ```bash
+git clone https://github.com/<you>/listing-radar
+cd listing-radar
+pip install -e .
+
 export ETSY_KEYSTRING=your_keystring
 export ETSY_SHARED_SECRET=your_shared_secret
-pip install listing-radar
 ```
 
 Both halves are required. Etsy's `x-api-key` header value is
@@ -71,6 +86,15 @@ Both halves are required. Etsy's `x-api-key` header value is
 
 Responses are cached to `~/.cache/listing-radar` for seven days. Rate limits are
 per key, so this is a requirement rather than an optimisation.
+
+## Running the tests
+
+```bash
+pip install -e ".[dev]"
+python3 -m pytest -q
+```
+
+Every test runs against a fake client — none of them make a real network call.
 
 ## Exit codes
 
