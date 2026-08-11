@@ -40,6 +40,8 @@ def screen(client, phrase: str, min_demand: float = MIN_DEMAND,
 
     return {
         "phrase": phrase,
+        "min_demand": min_demand,
+        "max_competition": max_competition,
         "demand_gate": demand_gate,
         "room_gate": room_gate,
         "format_gate": format_gate,
@@ -57,10 +59,10 @@ def render(result: dict) -> str:
         "",
         f"DEMAND   {mark(result['demand_gate'])}   "
         f"{d['demand']} median views/day of the rankers "
-        f"(needs >= {MIN_DEMAND})",
+        f"(needs >= {result['min_demand']})",
         f"ROOM     {mark(result['room_gate'])}   "
         f"{d['competition']} competitors "
-        f"(needs {scoring.NO_MARKET_BELOW}-{MAX_COMPETITION}: enough to imply a "
+        f"(needs {scoring.NO_MARKET_BELOW}-{result['max_competition']}: enough to imply a "
         f"market, few enough to place in)",
         f"FORMAT   {mark(result['format_gate'])}   "
         f"{', '.join(result['formats']) if result['formats'] else 'no beatable format among the rankers'}",

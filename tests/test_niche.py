@@ -55,3 +55,31 @@ def test_render_names_every_failing_gate():
     rows = [row(i, 1, "Handmade Ceramic Mug") for i in range(1, 6)]
     text = niche.render(niche.screen(FakeClient(50000, rows), "mug", now=NOW))
     assert "DEMAND" in text and "ROOM" in text and "FORMAT" in text
+
+
+def test_render_names_the_overridden_thresholds_not_the_defaults():
+    """Regression test for the critical whole-branch-review finding: screen()
+    computed its gates from the min_demand/max_competition arguments, but
+    render() interpolated the MIN_DEMAND/MAX_COMPETITION module constants —
+    so a caller who overrode the thresholds got a report that named the
+    defaults while having applied something else entirely. Demand 9.0 against
+    a threshold of 1.0 (the default) reads as a pass; against an overridden
+    threshold of 50.0 it must read, and be reported, as a FAIL. Likewise
+    competition 400 is inside the default 200-2000 room window but outside an
+    overridden 200-300 window."""
+    rows = [row(i, 900, "Budget Spreadsheet Google Sheets") for i in range(1, 6)]
+    result = niche.screen(FakeClient(400, rows), "budget spreadsheet", now=NOW,
+                           min_demand=50.0, max_competition=300)
+    text = niche.render(result)
+
+    assert result["demand_gate"] is False
+    assert result["room_gate"] is False
+
+    # The rendered text must name the overridden thresholds (50.0 and 300),
+    # never the module defaults (niche.MIN_DEMAND == 1.0, niche.MAX_COMPETITION == 2000).
+    assert "needs >= 50.0" in text
+    assert "needs >= 1.0" not in text
+    assert "200-300" in text
+    assert "200-2000" not in text
+    assert "DEMAND   FAIL" in text
+    assert "ROOM     FAIL" in text

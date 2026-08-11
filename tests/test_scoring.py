@@ -38,6 +38,16 @@ def test_thin_result_set_is_no_market_even_when_we_rank_first():
     assert scoring.rank_verdict(1, 12) == "NO MARKET"
 
 
+def test_competition_exactly_at_no_market_below_is_not_no_market():
+    """NO_MARKET_BELOW is a strict lower bound (`competition < no_market_below`
+    in rank_verdict, `NO_MARKET_BELOW <= competition` in niche's room gate) —
+    the boundary value itself counts as a market. It is read by demand.py,
+    niche.py, and scoring.py, making it the most load-bearing constant in the
+    tool, and its exact boundary had no test."""
+    assert scoring.rank_verdict(1, scoring.NO_MARKET_BELOW) != "NO MARKET"
+    assert scoring.rank_verdict(None, scoring.NO_MARKET_BELOW) == "ABSENT"
+
+
 def test_not_found_in_a_real_market_is_absent():
     assert scoring.rank_verdict(None, 5000) == "ABSENT"
 
