@@ -4,11 +4,13 @@ NOW = 1700000000 + 100 * 86400
 
 
 class FakeClient:
-    def __init__(self, count, rows):
+    def __init__(self, count, rows, cache_hits=0):
         self._count, self._rows = count, rows
-        self.cache_hits = 0
+        self.calls = 0
+        self.cache_hits = cache_hits
 
     def search(self, keywords, limit=100, offset=0):
+        self.calls += 1
         return {"count": self._count, "results": self._rows if offset == 0 else []}
 
 
@@ -83,3 +85,13 @@ def test_render_names_the_overridden_thresholds_not_the_defaults():
     assert "200-2000" not in text
     assert "DEMAND   FAIL" in text
     assert "ROOM     FAIL" in text
+
+
+def test_render_includes_the_api_calls_and_cache_hits_footer():
+    # screen() calls client.search() twice: once inside the nested
+    # demand_cmd.analyse(), once directly for format detection. The footer
+    # must reflect the total, read from the client after both calls.
+    rows = [row(i, 900, "Budget Spreadsheet Google Sheets") for i in range(1, 6)]
+    client = FakeClient(400, rows, cache_hits=1)
+    text = niche.render(niche.screen(client, "budget spreadsheet", now=NOW))
+    assert "2 API calls, 1 from cache" in text

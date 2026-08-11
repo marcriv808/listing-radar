@@ -55,3 +55,10 @@ def test_probe_stops_early_on_a_short_page():
 def test_render_always_includes_the_relevance_search_caveat():
     client = FakeClient(5000, [ids(11, 22)])
     assert rank.CAVEAT in rank.render(rank.probe(client, "x", 22))
+
+
+def test_render_includes_the_api_calls_and_cache_hits_footer():
+    client = FakeClient(5000, [ids(11, 22)])
+    client.cache_hits = 1
+    text = rank.render(rank.probe(client, "x", 22))
+    assert "1 API calls, 1 from cache" in text

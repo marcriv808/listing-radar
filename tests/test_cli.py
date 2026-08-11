@@ -1,3 +1,5 @@
+import time
+
 import pytest
 
 from listing_radar import cli, config
@@ -95,6 +97,22 @@ def test_non_numeric_shop_target_fails_cleanly_not_with_a_traceback(monkeypatch,
     assert err.strip() != ""
 
 
+@pytest.mark.parametrize("depth", ["-50", "0"])
+def test_non_positive_depth_is_rejected_before_any_client_is_constructed(monkeypatch, capsys, depth):
+    """range(depth // 100 + 1) silently becomes range(0) for depth < 1, so
+    rank.probe() would return a confident NO MARKET verdict from zero API
+    calls. --depth must be rejected by argparse — the same clean-exit-2
+    pattern as a typo'd traction target — before EtsyClient is even
+    constructed."""
+    monkeypatch.setattr(cli, "EtsyClient", succeeding_client())
+    with pytest.raises(SystemExit) as exc_info:
+        cli.main(["rank", "x", "--listing", "1", "--depth", depth])
+    assert exc_info.value.code == 2
+    err = capsys.readouterr().err
+    assert "Traceback" not in err
+    assert "--depth must be" in err
+
+
 def patched_traction(monkeypatch):
     """Patch EtsyClient to construct cleanly and spy on traction.for_listing /
     traction.for_shop, so routing can be asserted on without a real client or
@@ -128,3 +146,105 @@ def test_shop_prefixed_target_routes_to_for_shop(monkeypatch):
     code = cli.main(["traction", "shop:678"])
     assert code == 0
     assert calls == [("shop", 678)]
+
+
+def fake_client(search_result=None, listing_result=None, shop_result=None):
+    """A fake EtsyClient class that returns fixture-shaped payloads instead
+    of just constructing cleanly — unlike succeeding_client, this lets the
+    real analyse/screen/probe/for_listing/for_shop -> render path actually
+    run end to end, so what lands on stdout is what a real invocation would
+    print. No network, no real credentials, no disk: EtsyClient itself is
+    replaced, so config.credentials() and the real Cache are never reached."""
+
+    class FakeClient:
+        def __init__(self, *args, **kwargs):
+            self.calls = 0
+            self.cache_hits = 0
+
+        def search(self, keywords, limit=100, offset=0):
+            self.calls += 1
+            return search_result
+
+        def listing(self, listing_id):
+            self.calls += 1
+            return listing_result
+
+        def shop(self, shop_id):
+            self.calls += 1
+            return shop_result
+
+    return FakeClient
+
+
+def test_demand_command_prints_the_rendered_report_and_exits_zero(monkeypatch, capsys):
+    now = time.time()
+    rows = [{"listing_id": 1000000001, "shop_id": 2000000001, "title": "Freelance Tracker",
+             "views": 900, "num_favorers": 10,
+             "original_creation_timestamp": now - 100 * 86400}]
+    monkeypatch.setattr(cli, "EtsyClient",
+                        fake_client(search_result={"count": 5000, "results": rows}))
+
+    code = cli.main(["demand", "freelance tracker"])
+    out, err = capsys.readouterr()
+
+    assert code == 0
+    assert err == ""
+    assert "phrase        freelance tracker" in out
+    assert "demand        9.0" in out
+    assert "winnable" in out
+    assert "1 API calls, 0 from cache" in out
+
+
+def test_traction_command_prints_the_rendered_report_and_exits_zero(monkeypatch, capsys):
+    now = time.time()
+    row = {"listing_id": 1000000002, "shop_id": 2000000001, "title": "Ceramic Mug",
+           "views": 900, "num_favorers": 45,
+           "original_creation_timestamp": now - 100 * 86400}
+    monkeypatch.setattr(cli, "EtsyClient",
+                        fake_client(listing_result={"results": [row]}))
+
+    code = cli.main(["traction", "1000000002"])
+    out, err = capsys.readouterr()
+
+    assert code == 0
+    assert err == ""
+    assert "listing        Ceramic Mug" in out
+    assert "views/day      9.0" in out
+    assert "1 API calls, 0 from cache" in out
+
+
+def test_rank_command_prints_the_rendered_report_and_exits_zero(monkeypatch, capsys):
+    hits = [{"listing_id": i} for i in range(1, 4)]
+    monkeypatch.setattr(cli, "EtsyClient",
+                        fake_client(search_result={"count": 5000, "results": hits}))
+
+    code = cli.main(["rank", "estate executor checklist", "--listing", "2"])
+    out, err = capsys.readouterr()
+
+    assert code == 0
+    assert err == ""
+    assert "position     2 of 5000 competitors" in out
+    assert "verdict      TOP100" in out
+    assert cli.rank.CAVEAT in out
+    assert "1 API calls, 0 from cache" in out
+
+
+def test_niche_command_prints_the_rendered_report_and_exits_zero(monkeypatch, capsys):
+    now = time.time()
+    rows = [{"listing_id": i, "shop_id": 2000000001,
+             "title": "Budget Spreadsheet Google Sheets", "views": 900,
+             "num_favorers": 0, "original_creation_timestamp": now - 100 * 86400}
+            for i in range(1, 6)]
+    monkeypatch.setattr(cli, "EtsyClient",
+                        fake_client(search_result={"count": 400, "results": rows}))
+
+    code = cli.main(["niche", "budget spreadsheet"])
+    out, err = capsys.readouterr()
+
+    assert code == 0
+    assert err == ""
+    assert "DEMAND   pass" in out
+    assert "ROOM     pass" in out
+    assert "FORMAT   pass" in out
+    assert out.strip().split("\n")[-3] == "BUILD"
+    assert "2 API calls, 0 from cache" in out

@@ -48,6 +48,11 @@ def screen(client, phrase: str, min_demand: float = MIN_DEMAND,
         "formats": formats,
         "passes": demand_gate and room_gate and format_gate,
         "detail": d,
+        # client.calls/cache_hits reflect the total across both this
+        # function's own client.search() and the client.search() nested
+        # inside demand_cmd.analyse() above — read last, after both calls.
+        "api_calls": client.calls,
+        "cache_hits": client.cache_hits,
     }
 
 
@@ -68,5 +73,7 @@ def render(result: dict) -> str:
         f"{', '.join(result['formats']) if result['formats'] else 'no beatable format among the rankers'}",
         "",
         "BUILD" if result["passes"] else "SKIP — every gate must pass.",
+        "",
+        f"{result['api_calls']} API calls, {result['cache_hits']} from cache",
     ]
     return "\n".join(lines)

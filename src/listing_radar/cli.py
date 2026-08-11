@@ -28,6 +28,24 @@ def traction_target(value: str) -> tuple[str, int]:
         ) from None
 
 
+def positive_depth(value: str) -> int:
+    """argparse type for rank's --depth: must be a positive integer.
+
+    range(depth // 100 + 1) silently becomes range(0) — an empty loop — for
+    any depth < 1, so probe() would return a confident NO MARKET verdict
+    from zero API calls. Rejecting at the argparse layer, the same pattern
+    traction_target already uses, fails before any client is constructed
+    instead of fabricating a verdict from no data.
+    """
+    try:
+        parsed = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"{value!r} is not a valid integer") from None
+    if parsed < 1:
+        raise argparse.ArgumentTypeError(f"--depth must be >= 1, got {parsed}")
+    return parsed
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="listing-radar",
@@ -47,7 +65,7 @@ def build_parser() -> argparse.ArgumentParser:
     r = sub.add_parser("rank", help="why a listing gets no views")
     r.add_argument("phrase")
     r.add_argument("--listing", type=int, required=True, dest="listing_id")
-    r.add_argument("--depth", type=int, default=rank.DEPTH,
+    r.add_argument("--depth", type=positive_depth, default=rank.DEPTH,
                    help="how deep to look before calling it absent")
 
     n = sub.add_parser("niche", help="screen a phrase against three gates")

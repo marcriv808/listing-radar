@@ -43,6 +43,8 @@ def probe(client, phrase: str, listing_id: int, depth: int = DEPTH) -> dict:
         "competition": competition or 0,
         "verdict": scoring.rank_verdict(position, competition or 0),
         "pages_fetched": pages,
+        "api_calls": client.calls,
+        "cache_hits": client.cache_hits,
     }
 
 
@@ -64,4 +66,6 @@ def render(result: dict) -> str:
         f"             {MEANING[result['verdict']]}",
         "",
         CAVEAT,
+        "",
+        f"{result['api_calls']} API calls, {result['cache_hits']} from cache",
     ])
