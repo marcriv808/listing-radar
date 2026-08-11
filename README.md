@@ -72,6 +72,20 @@ Both halves are required. Etsy's `x-api-key` header value is
 Responses are cached to `~/.cache/listing-radar` for seven days. Rate limits are
 per key, so this is a requirement rather than an optimisation.
 
+## Exit codes
+
+| Code | Meaning |
+|---|---|
+| `0` | success |
+| `1` | other client error (a bad request, an unrecognised response, etc.) |
+| `2` | malformed invocation — argparse's own exit code for a bad flag or argument, e.g. a non-numeric `--listing` |
+| `3` | `QuotaExhausted` — Etsy's daily quota is gone; cached results still work |
+| `4` | `MissingCredentials` — `ETSY_KEYSTRING`/`ETSY_SHARED_SECRET` not set |
+
+`2` is deliberately not shared with any of this tool's own errors: it is
+argparse's code, raised before a client is ever constructed, so a script can
+tell "you typo'd an argument" apart from every error this tool raises itself.
+
 ## What this replaces
 
 eRank, Marmalade, and Alura charge roughly $20–50 a month for demand estimates.

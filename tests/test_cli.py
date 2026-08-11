@@ -53,12 +53,14 @@ def test_bare_runtime_error_prints_clean_error_and_exits_nonzero(monkeypatch, ca
 
 
 def test_missing_credentials_still_maps_to_its_own_exit_code(monkeypatch, capsys):
+    # 4, not 2 -- argparse itself exits 2 on any malformed invocation, so 2
+    # could not distinguish "missing credentials" from a typo'd argument.
     monkeypatch.setattr(
         cli, "EtsyClient", raising_client(config.MissingCredentials("ETSY_KEYSTRING not set."))
     )
     code = cli.main(["demand", "candle holder"])
     out, err = capsys.readouterr()
-    assert code == 2
+    assert code == 4
     assert err == "error: ETSY_KEYSTRING not set.\n"
     assert out == ""
 

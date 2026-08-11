@@ -96,7 +96,14 @@ def main(argv: list[str] | None = None) -> int:
                                             args.min_demand, args.max_competition)))
     except config.MissingCredentials as e:
         print(f"error: {e}", file=sys.stderr)
-        return 2
+        # 4, not 2: argparse itself already exits 2 on any malformed
+        # invocation (see traction_target/positive_depth above), so 2 was
+        # ambiguous between "missing credentials" and "typo'd argument".
+        # Ordering here is still load-bearing — MissingCredentials and
+        # QuotaExhausted are both RuntimeError subclasses, so this except
+        # must stay before the bare RuntimeError clause below regardless of
+        # which literal code it returns.
+        return 4
     except QuotaExhausted as e:
         print(f"error: {e}", file=sys.stderr)
         return 3
