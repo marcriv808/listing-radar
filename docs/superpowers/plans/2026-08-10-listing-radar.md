@@ -638,9 +638,11 @@ def test_sends_the_api_key_header(tmp_path):
 def test_source_tree_contains_no_write_calls():
     """This tool is read-only by construction. If a write ever lands here it is
     a design break, not a feature, so the test scans the source itself."""
+    # Scoped to HTTP verbs on a requests object plus the auth header. A bare
+    # ".put(" would match the cache's own put() and fail on correct code.
     banned = ("requests.post", "requests.patch", "requests.put",
-              "requests.delete", ".post(", ".patch(", ".put(", ".delete(",
-              "Authorization")
+              "requests.delete", "session.post", "session.patch",
+              "session.put", "session.delete", "Authorization")
     offenders = []
     for path in SRC.rglob("*.py"):
         text = path.read_text()
