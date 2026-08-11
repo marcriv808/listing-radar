@@ -36,6 +36,9 @@ def main(argv: list[str] | None = None) -> int:
     except QuotaExhausted as e:
         print(f"error: {e}", file=sys.stderr)
         return 3
+    except RuntimeError as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 1
     return 0
 
 
