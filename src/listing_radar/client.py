@@ -58,7 +58,8 @@ class EtsyClient:
                     "Check ETSY_SHARED_SECRET."
                 )
             if r.status_code in (429, 500, 502, 503):
-                time.sleep(2 ** attempt)
+                if attempt < 3:
+                    time.sleep(2 ** attempt)
                 continue
             raise RuntimeError(f"{r.status_code} {path} :: {r.text[:300]}")
         raise RuntimeError(f"retries exhausted: {path}")

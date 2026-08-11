@@ -24,3 +24,13 @@ def test_expired_entry_is_a_miss(tmp_path):
     c = Cache(tmp_path, ttl_seconds=0)
     c.put("/x", {}, {"ok": True})
     assert c.get("/x", {}) is None
+
+
+def test_corrupt_cache_entry_is_a_miss_not_a_crash(tmp_path):
+    c = Cache(tmp_path)
+    c.put("/x", {}, {"ok": True})
+    assert list(tmp_path.glob("*.tmp")) == []  # put() leaves no temp file behind
+    cached_file = next(tmp_path.glob("*.json"))
+    cached_file.write_text("{not valid json")  # simulate a truncated write
+    assert c.get("/x", {}) is None
+    assert c.hits == 0

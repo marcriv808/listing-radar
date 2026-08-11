@@ -31,8 +31,17 @@ class Cache:
             return None
         if time.time() - p.stat().st_mtime >= self.ttl:
             return None
+        try:
+            payload = json.loads(p.read_text())
+        except json.JSONDecodeError:
+            # A truncated write (Ctrl-C mid-scan, full disk) must degrade to a
+            # miss, not wedge every future run on a file nothing can parse.
+            return None
         self.hits += 1
-        return json.loads(p.read_text())
+        return payload
 
     def put(self, path: str, params: dict, payload: dict) -> None:
-        self._path(path, params).write_text(json.dumps(payload))
+        p = self._path(path, params)
+        tmp = p.with_name(p.name + ".tmp")
+        tmp.write_text(json.dumps(payload))
+        tmp.replace(p)

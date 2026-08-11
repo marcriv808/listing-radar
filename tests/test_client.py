@@ -73,6 +73,26 @@ def test_sends_the_api_key_header(tmp_path):
     assert session.headers["x-api-key"] == "k:s"
 
 
+def test_503_then_200_retries_once_and_returns_the_payload(tmp_path, monkeypatch):
+    sleeps = []
+    monkeypatch.setattr("listing_radar.client.time.sleep", sleeps.append)
+    session = FakeSession([FakeResponse(503), FakeResponse(200, {"count": 1})])
+    c = EtsyClient(cache=Cache(tmp_path), session=session)
+    assert c.get("/listings/active", keywords="x") == {"count": 1}
+    assert c.calls == 2
+    assert sleeps == [1]
+
+
+def test_four_consecutive_failures_exhausts_retries_without_a_final_sleep(tmp_path, monkeypatch):
+    sleeps = []
+    monkeypatch.setattr("listing_radar.client.time.sleep", sleeps.append)
+    session = FakeSession([FakeResponse(503)] * 4)
+    c = EtsyClient(cache=Cache(tmp_path), session=session)
+    with pytest.raises(RuntimeError, match="retries exhausted"):
+        c.get("/listings/active", keywords="x")
+    assert sleeps == [1, 2, 4]
+
+
 def test_source_tree_contains_no_write_calls():
     """This tool is read-only by construction. If a write ever lands here it is
     a design break, not a feature, so the test scans the source itself."""

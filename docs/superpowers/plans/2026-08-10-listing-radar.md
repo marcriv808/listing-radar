@@ -695,11 +695,20 @@ class Cache:
             return None
         if time.time() - p.stat().st_mtime >= self.ttl:
             return None
+        try:
+            payload = json.loads(p.read_text())
+        except json.JSONDecodeError:
+            # A truncated write (Ctrl-C mid-scan, full disk) must degrade to a
+            # miss, not wedge every future run on a file nothing can parse.
+            return None
         self.hits += 1
-        return json.loads(p.read_text())
+        return payload
 
     def put(self, path: str, params: dict, payload: dict) -> None:
-        self._path(path, params).write_text(json.dumps(payload))
+        p = self._path(path, params)
+        tmp = p.with_name(p.name + ".tmp")
+        tmp.write_text(json.dumps(payload))
+        tmp.replace(p)
 ```
 
 - [ ] **Step 4: Write the client**
@@ -767,7 +776,8 @@ class EtsyClient:
                     "Check ETSY_SHARED_SECRET."
                 )
             if r.status_code in (429, 500, 502, 503):
-                time.sleep(2 ** attempt)
+                if attempt < 3:
+                    time.sleep(2 ** attempt)
                 continue
             raise RuntimeError(f"{r.status_code} {path} :: {r.text[:300]}")
         raise RuntimeError(f"retries exhausted: {path}")
