@@ -73,9 +73,14 @@ three causes have completely different fixes:
 
 | Verdict | Meaning | Implication |
 |---|---|---|
-| `BURIED` | ranks, but deep (page 3+) | competitive niche; the gap is authority, not wording |
+| `TOP100` | ranks within the first 100 results | visibility is fine; if views are low the problem is the listing |
+| `BURIED` | ranks, but deeper than 100 | competitive niche; the gap is authority, not wording |
 | `ABSENT` | not present in 250 results | not actually competing for that phrase |
-| `NO MARKET` | phrase returns few listings | nobody sells it because nobody buys it |
+| `NO MARKET` | fewer than 200 listings match | nobody sells it because nobody buys it |
+
+`NO MARKET` is evaluated before position, deliberately: ranking first in a room
+of twelve listings is not a win, and reporting it as `TOP100` would read as
+success.
 
 **Blocking caveat, printed on every run:** `listings/active?keywords=` is the API's
 relevance search, not buyer-facing Etsy search ranking. Position is ordinal evidence
