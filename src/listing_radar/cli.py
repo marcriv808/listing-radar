@@ -9,6 +9,25 @@ from .client import EtsyClient, QuotaExhausted
 from .commands import demand, traction
 
 
+def traction_target(value: str) -> tuple[str, int]:
+    """argparse type for traction's target: a bare listing id (e.g. 12345) or
+    shop:<shop_id> (e.g. shop:678). Returns ("listing"|"shop", id).
+
+    Doing the int() conversion here — instead of inside main()'s try block —
+    means a typo'd id fails the same clean way --sample's type=int already
+    does: argparse rejects it and exits before main() ever runs, instead of
+    an uncaught ValueError escaping as a raw traceback.
+    """
+    kind, raw_id = ("shop", value[5:]) if value.startswith("shop:") else ("listing", value)
+    try:
+        return kind, int(raw_id)
+    except ValueError:
+        raise argparse.ArgumentTypeError(
+            f"{value!r} is not a valid traction target "
+            f"(expected a listing id, e.g. 12345, or shop:<shop_id>, e.g. shop:12345)"
+        ) from None
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="listing-radar",
@@ -23,7 +42,7 @@ def build_parser() -> argparse.ArgumentParser:
                    help="how many ranked listings to sample (max 100)")
 
     t = sub.add_parser("traction", help="how well is a competitor doing")
-    t.add_argument("target", help="a listing id, or shop:<shop_id>")
+    t.add_argument("target", type=traction_target, help="a listing id, or shop:<shop_id>")
     return p
 
 
@@ -34,10 +53,11 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "demand":
             print(demand.render(demand.analyse(client, args.phrase, args.sample)))
         elif args.command == "traction":
-            if args.target.startswith("shop:"):
-                result = traction.for_shop(client, int(args.target[5:]))
+            kind, target_id = args.target
+            if kind == "shop":
+                result = traction.for_shop(client, target_id)
             else:
-                result = traction.for_listing(client, int(args.target))
+                result = traction.for_listing(client, target_id)
             print(traction.render(result))
     except config.MissingCredentials as e:
         print(f"error: {e}", file=sys.stderr)

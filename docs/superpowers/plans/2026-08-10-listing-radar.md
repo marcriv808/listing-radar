@@ -1163,21 +1163,47 @@ In `src/listing_radar/cli.py`, add `traction` to the imports:
 from .commands import demand, traction
 ```
 
+Add this validator above `build_parser`. argparse runs it before `main()`'s
+try block, so a bad target — a typo'd id, `shop:abc` — fails the same clean
+way `--sample`'s `type=int` already does, instead of an uncaught `ValueError`
+escaping as a raw traceback:
+
+```python
+def traction_target(value: str) -> tuple[str, int]:
+    """argparse type for traction's target: a bare listing id (e.g. 12345) or
+    shop:<shop_id> (e.g. shop:678). Returns ("listing"|"shop", id).
+
+    Doing the int() conversion here — instead of inside main()'s try block —
+    means a typo'd id fails the same clean way --sample's type=int already
+    does: argparse rejects it and exits before main() ever runs, instead of
+    an uncaught ValueError escaping as a raw traceback.
+    """
+    kind, raw_id = ("shop", value[5:]) if value.startswith("shop:") else ("listing", value)
+    try:
+        return kind, int(raw_id)
+    except ValueError:
+        raise argparse.ArgumentTypeError(
+            f"{value!r} is not a valid traction target "
+            f"(expected a listing id, e.g. 12345, or shop:<shop_id>, e.g. shop:12345)"
+        ) from None
+```
+
 Add this parser after the `demand` parser block in `build_parser`:
 
 ```python
     t = sub.add_parser("traction", help="how well is a competitor doing")
-    t.add_argument("target", help="a listing id, or shop:<shop_id>")
+    t.add_argument("target", type=traction_target, help="a listing id, or shop:<shop_id>")
 ```
 
 Add this branch after the `demand` branch in `main`:
 
 ```python
         elif args.command == "traction":
-            if args.target.startswith("shop:"):
-                result = traction.for_shop(client, int(args.target[5:]))
+            kind, target_id = args.target
+            if kind == "shop":
+                result = traction.for_shop(client, target_id)
             else:
-                result = traction.for_listing(client, int(args.target))
+                result = traction.for_listing(client, target_id)
             print(traction.render(result))
 ```
 
