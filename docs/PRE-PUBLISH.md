@@ -35,11 +35,28 @@ computes analytics over it — median views/day, competitor counts, rank
 position. That is the plain reading, not a strained one. Publishing it
 publicly is additionally "promoting the use of" such a system.
 
-**Do not publish until Etsy answers.** Write to developer@etsy.com,
-describe the tool exactly (read-only, GET only, each user supplies their own
-key, no data resale), and ask whether it needs written authorization under
-these two clauses. Their answer decides whether this repo ships publicly,
-ships private, or stays a personal tool.
+**Do not publish until Etsy answers.** The cheapest way to ask is not a cold
+email — it is the app registration itself. Etsy offers three tiers
+(https://developers.etsy.com/documentation/): a **Seller App**, scoped to your
+own shop and approved in minutes; a **Personal App**, for "tools that other
+buyers or sellers may use at a limited scale," which goes through "a deeper
+review process"; and **Commercial Access** as an upgrade from an approved
+Personal App.
+
+Register this as a **Personal App**, under its own key. §3 requires Etsy's
+prior approval of each Application's stated purpose, so that review *is* the
+approval channel, and an approved purpose that says "open source, published
+publicly, each user brings their own key" is a better record than an email
+reply. Do not register it as a Seller App to skip the queue: Etsy states
+Seller Access "cannot be used to access other sellers' private shop data or to
+build applications for the broader Etsy seller community," which is precisely
+what this tool does. The misstatement would be the real exposure, not the tool.
+
+Fall back to developer@etsy.com only if the form leaves no room to raise the
+§5 analytics question or the review comes back ambiguous.
+
+Register it under its own key rather than reusing one from another app. §2
+requires that anyway, and an objection then costs this tool's key alone.
 
 Related, and worth asking in the same email: section 2 says "Each API key
 may only be used for a single Application, and each Application may only
