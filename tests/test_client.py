@@ -1,9 +1,104 @@
+import ast
 import pathlib
 import pytest
 from listing_radar.cache import Cache
 from listing_radar.client import EtsyClient, QuotaExhausted
 
 SRC = pathlib.Path(__file__).resolve().parents[1] / "src"
+
+# Attribute names a session/requests-like object may legitimately touch.
+# Anything else accessed on one — a call (`.post(`, `.patch(`, `.put(`,
+# `.delete(`, `.request(`) or a bare read — is either a write verb or has no
+# business being called by a read-only tool. "Session" and "headers" are
+# allowed because constructing a session and reading/writing its own
+# `.headers` dict (for the x-api-key header) are legitimate; "get" is the
+# only HTTP verb this tool is allowed to issue.
+ALLOWED_SESSION_ATTRS = {"get", "Session", "headers"}
+
+
+def _flatten(node: ast.AST) -> str:
+    """Render a Name/Attribute chain (e.g. `self.session`) back to a dotted
+    string so it can be pattern-matched. Anything that isn't a plain
+    Name/Attribute chain (a call, a subscript, ...) falls back to ast.dump,
+    which will never coincidentally contain "session" or equal "requests",
+    so it simply never matches — which is correct, since the object being
+    called there was itself already walked and checked independently."""
+    try:
+        return ast.unparse(node)
+    except Exception:
+        return ast.dump(node)
+
+
+def _looks_session_or_requests(base: str) -> bool:
+    b = base.lower()
+    return b == "requests" or "session" in b
+
+
+def _offenders_in(root: pathlib.Path) -> list[str]:
+    """Walk every .py file under `root` as an AST (not a text scan) and
+    return one string per violation of the read-only contract:
+
+    1. Any attribute access — call or bare read — on something that looks
+       like a `requests` module or a `.session`-named object must use an
+       attribute from ALLOWED_SESSION_ATTRS. This catches `.request(`,
+       `.post(`, `.patch(`, `.put(`, `.delete(` on a session/requests object
+       without also flagging unrelated methods like Cache.put (`self.cache`
+       is not session/requests-like, so it is never subject to this check).
+    2. An "authorization" key or attribute being set — as a subscript
+       assignment (`x.headers["authorization"] = ...`), a dict literal key
+       (`headers={"Authorization": ...}`), an attribute assignment
+       (`x.Authorization = ...`), or a call keyword argument — is flagged
+       regardless of what the surrounding object is named. This is
+       deliberately independent of check 1's session/requests heuristic: a
+       header dict aliased to an unrelated-looking name (e.g. `s`) still
+       gets caught, because the match is on the key/attribute text, matched
+       case-insensitively, not on the variable it lives on.
+    """
+    offenders = []
+    for path in sorted(root.rglob("*.py")):
+        tree = ast.parse(path.read_text(), filename=str(path))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Attribute):
+                base = _flatten(node.value)
+                if _looks_session_or_requests(base) and node.attr not in ALLOWED_SESSION_ATTRS:
+                    offenders.append(
+                        f"{path.name}:{node.lineno}: {base}.{node.attr}( — "
+                        f"not in the allowed attribute set {sorted(ALLOWED_SESSION_ATTRS)}"
+                    )
+                if node.attr.lower() == "authorization" and isinstance(node.ctx, ast.Store):
+                    offenders.append(
+                        f"{path.name}:{node.lineno}: attribute assignment "
+                        f".{node.attr} sets an authorization header"
+                    )
+
+            if isinstance(node, ast.Subscript):
+                slice_node = node.slice
+                if (isinstance(slice_node, ast.Constant)
+                        and isinstance(slice_node.value, str)
+                        and slice_node.value.lower() == "authorization"
+                        and isinstance(node.ctx, ast.Store)):
+                    offenders.append(
+                        f"{path.name}:{node.lineno}: subscript assignment "
+                        f"keyed {slice_node.value!r} sets an authorization header"
+                    )
+
+            if isinstance(node, ast.Dict):
+                for key in node.keys:
+                    if (isinstance(key, ast.Constant) and isinstance(key.value, str)
+                            and key.value.lower() == "authorization"):
+                        offenders.append(
+                            f"{path.name}:{node.lineno}: dict literal keyed "
+                            f"{key.value!r} sets an authorization header"
+                        )
+
+            if isinstance(node, ast.Call):
+                for kw in node.keywords:
+                    if kw.arg and kw.arg.lower() == "authorization":
+                        offenders.append(
+                            f"{path.name}:{node.lineno}: keyword argument "
+                            f"{kw.arg!r} sets an authorization header"
+                        )
+    return offenders
 
 
 class FakeResponse:
@@ -95,16 +190,16 @@ def test_four_consecutive_failures_exhausts_retries_without_a_final_sleep(tmp_pa
 
 def test_source_tree_contains_no_write_calls():
     """This tool is read-only by construction. If a write ever lands here it is
-    a design break, not a feature, so the test scans the source itself."""
-    # Scoped to HTTP verbs on a requests object plus the auth header. A bare
-    # ".put(" would match the cache's own put() and fail on correct code.
-    banned = ("requests.post", "requests.patch", "requests.put",
-              "requests.delete", "session.post", "session.patch",
-              "session.put", "session.delete", "Authorization")
-    offenders = []
-    for path in SRC.rglob("*.py"):
-        text = path.read_text()
-        for token in banned:
-            if token in text:
-                offenders.append(f"{path.name}: {token}")
-    assert offenders == []
+    a design break, not a feature, so the test scans the source itself.
+
+    This is an AST walk, not a text/substring scan. A prior version banned
+    nine literal substrings (e.g. "session.post", "Authorization") and a
+    whole-branch review broke it three different ways in one sitting: calling
+    `.request(` directly (not in the banned list at all), aliasing the
+    session to a name that doesn't literally contain "session" before
+    calling a banned verb, and setting a header keyed "authorization" in
+    lowercase (case-sensitive match missed it). Parsing the source and
+    reasoning about what each Attribute/Call/Dict/Subscript node actually
+    does closes all three: see _offenders_in's docstring for exactly what it
+    checks and why."""
+    assert _offenders_in(SRC) == []
