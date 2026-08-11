@@ -4,6 +4,7 @@ cache/
 data/
 *.json
 !package.json
+!tests/fixtures/*.json
 __pycache__/
 *.pyc
 .venv/
