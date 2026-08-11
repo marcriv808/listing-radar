@@ -76,7 +76,7 @@ Requires Python 3.10+. You need your own Etsy app key. Registration and
 approval take a few days and no tool can shortcut that.
 
 ```bash
-git clone https://github.com/<you>/listing-radar
+git clone https://github.com/marcriv808/listing-radar
 cd listing-radar
 pip install -e .
 
@@ -87,8 +87,23 @@ export ETSY_SHARED_SECRET=your_shared_secret
 Both halves are required. Etsy's `x-api-key` header value is
 `keystring:shared_secret`; a bare keystring returns 403.
 
-Responses are cached to `~/.cache/listing-radar` for seven days. Rate limits are
-per key, so this is a requirement rather than an optimisation.
+**Running more than one Etsy app?** Etsy issues one key per Application, so a
+second app collides on those variable names. Set the scoped pair instead and
+this tool will use it and leave the plain ones alone:
+
+```bash
+export LISTING_RADAR_ETSY_KEYSTRING=your_keystring
+export LISTING_RADAR_ETSY_SHARED_SECRET=your_shared_secret
+```
+
+Set either scoped variable and both are required — the tool will not pair one
+app's keystring with another's secret, because that returns a 403 identical to
+the one an unapproved app gets.
+
+Responses are cached to `~/.cache/listing-radar` for six hours. Rate limits are
+per key (5 requests/second, 5,000/day on a Personal Access app), so caching is
+a requirement rather than an optimisation. Six hours is also the ceiling Etsy's
+API Terms §5 puts on displaying listing content, so it is not a tuning knob.
 
 ## Running the tests
 

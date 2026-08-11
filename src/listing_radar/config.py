@@ -19,10 +19,20 @@ class MissingCredentials(RuntimeError):
 
 
 def credentials() -> str:
-    keystring = os.environ.get("ETSY_KEYSTRING", "").strip()
-    secret = os.environ.get("ETSY_SHARED_SECRET", "").strip()
-    missing = [n for n, v in (("ETSY_KEYSTRING", keystring),
-                              ("ETSY_SHARED_SECRET", secret)) if not v]
+    # Etsy issues one key per Application, so anyone running a second Etsy app
+    # from the same shell has a collision on the plain names. If either scoped
+    # variable is set, this tool uses only the scoped pair — it never mixes one
+    # app's keystring with another's secret, because that combination returns
+    # the same 403 as an unapproved app and is miserable to diagnose.
+    prefix = "LISTING_RADAR_"
+    scoped = any(os.environ.get(prefix + n, "").strip()
+                 for n in ("ETSY_KEYSTRING", "ETSY_SHARED_SECRET"))
+    names = [(prefix if scoped else "") + n
+             for n in ("ETSY_KEYSTRING", "ETSY_SHARED_SECRET")]
+
+    keystring = os.environ.get(names[0], "").strip()
+    secret = os.environ.get(names[1], "").strip()
+    missing = [n for n, v in zip(names, (keystring, secret)) if not v]
     if missing:
         raise MissingCredentials(
             f"{' and '.join(missing)} not set. Etsy needs both halves: the "
