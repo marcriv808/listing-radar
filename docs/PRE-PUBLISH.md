@@ -56,7 +56,8 @@ Fall back to developer@etsy.com only if the form leaves no room to raise the
 §5 analytics question or the review comes back ambiguous.
 
 Register it under its own key rather than reusing one from another app. §2
-requires that anyway, and an objection then costs this tool's key alone.
+requires that anyway, and it means an objection to this tool costs this tool's
+key and nothing else.
 
 Related, and worth asking in the same email: section 2 says "Each API key
 may only be used for a single Application, and each Application may only
@@ -91,8 +92,7 @@ cover this one.
   direction: `demand` and `traction` analyse other sellers' listings.
 
 Net: prior art shows the risk here is not a GitHub takedown. It is key
-revocation, which is why this tool runs on a key of its own. The separation
-is the point.
+revocation, which is why this tool runs on a key of its own.
 
 - [x] Read Etsy's current API terms of use and developer policy. This tool
       encourages third parties to use their own keys; confirm that distributing
@@ -183,6 +183,6 @@ is the point.
 - Cache TTL was 7 days; it is now **6 hours** (`cache.py`). API Terms §5
   ("Display of Data") caps displayed listing content at six hours old. Every
   command here displays listing content, so the old default was a standing
-  breach. The cost is real and was accepted deliberately: the cache exists
-  because a developer key gets 10,000 calls a day, and a 6-hour TTL means far
-  more live calls than a 7-day one. Do not raise it back.
+  breach. The cost is real and was accepted deliberately: a Personal Access
+  app is allotted 5,000 calls a day, and a 6-hour TTL means far more live
+  calls than a 7-day one. Do not raise it back.
