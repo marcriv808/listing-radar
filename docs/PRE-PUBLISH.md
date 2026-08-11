@@ -47,6 +47,36 @@ use its designated API key," and section 3 requires Etsy's prior approval of
 each Application's stated purpose. A key registered for another app does not
 cover this one.
 
+### What prior art on GitHub does and does not show (searched 2026-08-11)
+
+- GitHub's public DMCA record (`github/dmca`) contains exactly one Etsy
+  notice, from 2018, and it targets an ex-employee republishing Etsy's own
+  internal repositories. **No third-party Etsy tool has ever been taken
+  down.** This is weak evidence: a ToU breach is a contract matter, and the
+  remedy in §6 is suspension of the API key and Developer Account, which
+  leaves no public trace. Absence of takedowns is what both worlds look like.
+- Public, MIT-licensed market-research tools built on the official v3 API do
+  exist and are live — e.g. `Daniel-Alamezie/Etsy-Market-Research`, which
+  reports price distribution, competitor tags and favourites for a niche.
+  Nothing visible has happened to it. It also has one star; prevalence at
+  zero traction says nothing about what happens to a tool that gets used.
+- A code search for the §1 disclaimer, "not endorsed or certified by Etsy",
+  returns **no repositories at all** — not the 171-star Ruby wrapper, not the
+  fifteen-year-old Python one. The ecosystem norm is to ignore that clause
+  entirely. That is a description of the norm, not a defence.
+- The most informative case is `juanmarinm/etsy-market-research-sandbox`,
+  whose README is a compliance posture: 100% official API, no scraping, and
+  "strictly for personal research and will not be commercialized as a SaaS or
+  distributed to the general public." An independent developer read the same
+  terms and chose not to distribute.
+- Etsy's supported analytics lane is OAuth-scoped access to data a seller has
+  authorized about **their own** shop. This tool's exposure is the opposite
+  direction: `demand` and `traction` analyse other sellers' listings.
+
+Net: prior art shows the risk here is not a GitHub takedown. It is key
+revocation, which is why this tool runs on a key of its own. The separation
+is the point.
+
 - [x] Read Etsy's current API terms of use and developer policy. This tool
       encourages third parties to use their own keys; confirm that distributing
       an open-source client is permitted and that nothing in the README implies
