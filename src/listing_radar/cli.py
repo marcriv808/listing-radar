@@ -6,7 +6,7 @@ import sys
 
 from . import config
 from .client import EtsyClient, QuotaExhausted
-from .commands import demand, traction
+from .commands import demand, rank, traction
 
 
 def traction_target(value: str) -> tuple[str, int]:
@@ -43,6 +43,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     t = sub.add_parser("traction", help="how well is a competitor doing")
     t.add_argument("target", type=traction_target, help="a listing id, or shop:<shop_id>")
+
+    r = sub.add_parser("rank", help="why a listing gets no views")
+    r.add_argument("phrase")
+    r.add_argument("--listing", type=int, required=True, dest="listing_id")
+    r.add_argument("--depth", type=int, default=rank.DEPTH,
+                   help="how deep to look before calling it absent")
     return p
 
 
@@ -59,6 +65,9 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 result = traction.for_listing(client, target_id)
             print(traction.render(result))
+        elif args.command == "rank":
+            print(rank.render(rank.probe(client, args.phrase,
+                                         args.listing_id, args.depth)))
     except config.MissingCredentials as e:
         print(f"error: {e}", file=sys.stderr)
         return 2
