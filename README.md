@@ -115,8 +115,21 @@ tell "you typo'd an argument" apart from every error this tool raises itself.
 
 ## What this replaces
 
-eRank, Marmalade, and Alura charge roughly $20–50 a month for demand estimates.
+eRank, Marmalead, and Alura charge roughly $20–50 a month for demand estimates.
 This infers them from the same public data, for free.
+
+## Prior art
+
+[Daniel-Alamezie/Etsy-Market-Research](https://github.com/Daniel-Alamezie/Etsy-Market-Research)
+(MIT) is the closest open-source tool I know of, and it is worth reading. It is
+a Next.js dashboard rather than a CLI, and it answers a different question —
+price distribution, tag frequency, and saturation for a niche.
+
+Credit where it is due on one specific thing: it normalizes prices across
+currencies with live FX rates before computing a median. Etsy returns each
+listing in the seller's own currency, and mixing them silently corrupts any
+average — which is exactly why this tool omits prices entirely rather than
+report a wrong number. Converting first is the better answer, and it is theirs.
 
 ## Related
 
