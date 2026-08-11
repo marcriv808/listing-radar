@@ -82,9 +82,17 @@ pip install -e .
 
 export ETSY_KEYSTRING=your_keystring
 export ETSY_SHARED_SECRET=your_shared_secret
+
+listing-radar accept-terms
 ```
 
-Both halves are required. Etsy's `x-api-key` header value is
+`accept-terms` is a one-time step. Etsy's API Terms §3 require an application's
+terms to be accepted in a legally enforceable way, and a CLI has no install
+prompt to do it in — so every other command refuses to run until you have. The
+terms are in [TERMS.md](TERMS.md) and they are short: everything runs on your
+machine, nothing is sent anywhere but Etsy, there is no telemetry.
+
+Both halves of the key are required. Etsy's `x-api-key` header value is
 `keystring:shared_secret`; a bare keystring returns 403.
 
 **Running more than one Etsy app?** Etsy issues one key per Application, so a
@@ -123,6 +131,7 @@ Every test runs against a fake client — none of them make a real network call.
 | `2` | malformed invocation — argparse's own exit code for a bad flag or argument, e.g. a non-numeric `--listing` |
 | `3` | `QuotaExhausted` — Etsy's daily quota is gone; cached results still work |
 | `4` | `MissingCredentials` — `ETSY_KEYSTRING`/`ETSY_SHARED_SECRET` not set |
+| `5` | terms not accepted — run `listing-radar accept-terms` |
 
 `2` is deliberately not shared with any of this tool's own errors: it is
 argparse's code, raised before a client is ever constructed, so a script can

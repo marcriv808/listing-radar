@@ -179,12 +179,22 @@ revocation, which is why this tool runs on a key of its own.
       section. The domain's MX records resolve (Zoho), so the address can
       actually receive mail — §3 requires a *monitored* address, and one that
       bounces would satisfy the letter of the checklist while failing the term.
-- [ ] Decide what stands in for the click-through Application Terms §3 requires,
-      given a CLI has no install-time prompt. A LICENSE file is not a
-      click-through, and neither is a README section. Options worth weighing:
-      a first-run acknowledgement written to the cache directory, or asking
-      Etsy directly what they accept for a command-line tool — the same channel
-      that answered the key question is the obvious place to raise it.
+- [x] Decide what stands in for the click-through Application Terms §3 requires,
+      given a CLI has no install-time prompt.
+      — 2026-08-11: `TERMS.md` (versioned) plus a blocking `accept-terms`
+      command. §3 asks for acceptance "in a manner that is legally
+      enforceable, including but not limited to a click-through or equivalent
+      user experience", so a printed notice was not an option — acceptance has
+      to be an affirmative act. Every other command exits 5 until it happens.
+      The gate runs before the client is constructed, so nothing reaches Etsy
+      on an unaccepted install, and before the credentials check, so a new
+      user is not asked for a key in order to satisfy the step that precedes
+      needing one. Acceptance is recorded per terms version, locally, and a
+      version bump re-prompts; a corrupt or hand-edited marker fails closed.
+      TERMS.md also carries the §3 warranty disclaimer naming the developer,
+      which the README alone did not. Worth confirming with Etsy that this
+      counts as "equivalent" for a CLI — it is a judgement call, made in the
+      direction of doing more than the letter rather than less.
 
 ## Compliance changes already made
 

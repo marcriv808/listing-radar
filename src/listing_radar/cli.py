@@ -4,8 +4,8 @@ from __future__ import annotations
 import argparse
 import sys
 
-from . import config
-from .client import EtsyClient, QuotaExhausted
+from . import config, terms
+from .client import DEFAULT_CACHE_DIR, EtsyClient, QuotaExhausted
 from .commands import demand, niche, rank, traction
 
 # Required verbatim by Etsy's API Terms of Use, section 1 ("Etsy's
@@ -82,11 +82,28 @@ def build_parser() -> argparse.ArgumentParser:
     n.add_argument("phrase")
     n.add_argument("--min-demand", type=float, default=niche.MIN_DEMAND)
     n.add_argument("--max-competition", type=int, default=niche.MAX_COMPETITION)
+
+    sub.add_parser("accept-terms",
+                   help="accept the terms — required once, before first use")
     return p
 
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+
+    # Etsy API Terms §3 require the Application's terms to be accepted in a
+    # legally enforceable manner. This gate runs before EtsyClient is built so
+    # that nothing reaches Etsy on an unaccepted install — and before the
+    # credentials check, so a new user is not asked for a key in order to
+    # satisfy the step that precedes needing one.
+    if args.command == "accept-terms":
+        terms.accept(DEFAULT_CACHE_DIR)
+        print(f"Terms version {terms.VERSION} accepted. Thanks — you're set.")
+        return 0
+    if not terms.accepted(DEFAULT_CACHE_DIR):
+        print(terms.notice(), file=sys.stderr)
+        return 5
+
     try:
         client = EtsyClient()
         if args.command == "demand":

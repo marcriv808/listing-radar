@@ -2,8 +2,19 @@ import time
 
 import pytest
 
-from listing_radar import cli, config
+from listing_radar import cli, config, terms
 from listing_radar.client import QuotaExhausted
+
+
+@pytest.fixture(autouse=True)
+def terms_accepted(monkeypatch, tmp_path):
+    """Every command is gated on terms acceptance (Etsy API Terms §3), so
+    tests of command behaviour start from an accepted state in a throwaway
+    directory — never the real ~/.cache. Tests of the gate itself call
+    _no_terms() to point at a fresh, unaccepted directory instead."""
+    root = tmp_path / "accepted"
+    terms.accept(root)
+    monkeypatch.setattr(cli, "DEFAULT_CACHE_DIR", root)
 
 
 def raising_client(exc: Exception):
@@ -285,3 +296,69 @@ def test_readme_carries_the_verbatim_etsy_trademark_disclaimer():
     # renderer drops — the requirement is about the displayed sentence.
     rendered = " ".join(re.sub(r"^\s*>\s?", "", readme.read_text(), flags=re.M).split())
     assert required in rendered
+
+
+def _no_terms(monkeypatch, tmp_path):
+    """Point the terms marker at a clean dir so the gate is unaccepted."""
+    monkeypatch.setattr(cli, "DEFAULT_CACHE_DIR", tmp_path)
+
+
+def test_commands_are_blocked_until_the_terms_are_accepted(monkeypatch, tmp_path, capsys):
+    """Etsy API Terms §3 wants acceptance in a legally enforceable manner. A
+    printed notice is not acceptance, so the gate must block the command --
+    and must do so before any API call is made."""
+    _no_terms(monkeypatch, tmp_path)
+    called = []
+    monkeypatch.setattr(cli, "EtsyClient", lambda *a, **k: called.append(1))
+
+    code = cli.main(["demand", "budget spreadsheet"])
+    out, err = capsys.readouterr()
+
+    assert code == 5
+    assert called == [], "the terms gate must run before any client is built"
+    assert "accept-terms" in err
+    assert "TERMS.md" in err
+
+
+def test_accept_terms_records_acceptance_and_exits_zero(monkeypatch, tmp_path, capsys):
+    _no_terms(monkeypatch, tmp_path)
+
+    code = cli.main(["accept-terms"])
+    out, _ = capsys.readouterr()
+
+    assert code == 0
+    assert "accepted" in out.lower()
+    from listing_radar import terms
+    assert terms.accepted(tmp_path) is True
+
+
+def test_commands_run_normally_once_accepted(monkeypatch, tmp_path, capsys):
+    _no_terms(monkeypatch, tmp_path)
+    from listing_radar import terms
+    terms.accept(tmp_path)
+
+    now = time.time()
+    rows = [{"listing_id": 1, "shop_id": 2000000001, "title": "Budget Spreadsheet",
+             "views": 900, "num_favorers": 3,
+             "original_creation_timestamp": now - 100 * 86400}]
+    monkeypatch.setattr(cli, "EtsyClient",
+                        fake_client(search_result={"count": 400, "results": rows}))
+
+    code = cli.main(["demand", "budget spreadsheet"])
+    out, err = capsys.readouterr()
+
+    assert code == 0
+    assert err == ""
+    assert "phrase" in out
+
+
+def test_accept_terms_needs_no_credentials(monkeypatch, tmp_path, capsys):
+    """Accepting must work before a key exists -- otherwise a new user hits
+    the credentials error while trying to satisfy the gate that precedes it."""
+    _no_terms(monkeypatch, tmp_path)
+    monkeypatch.delenv("ETSY_KEYSTRING", raising=False)
+    monkeypatch.delenv("ETSY_SHARED_SECRET", raising=False)
+    monkeypatch.delenv("LISTING_RADAR_ETSY_KEYSTRING", raising=False)
+    monkeypatch.delenv("LISTING_RADAR_ETSY_SHARED_SECRET", raising=False)
+
+    assert cli.main(["accept-terms"]) == 0
