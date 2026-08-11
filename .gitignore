@@ -4,7 +4,12 @@ cache/
 data/
 *.json
 !package.json
+!tests/fixtures/*.json
 __pycache__/
 *.pyc
 .venv/
 .DS_Store
+
+# Planning docs stay local — see docs/PRE-PUBLISH.md for why. Only
+# docs/PRE-PUBLISH.md itself is tracked; this subdirectory is not.
+docs/superpowers/
